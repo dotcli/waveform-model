@@ -1,0 +1,21 @@
+{
+  "name": "waveform-model",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "glsl-server index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Changbai Li <lcb931023@gmail.com> (http://changbai.li)",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^4.14.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "shader-reload": "^1.2.2"
+  },
+  "dependencies": {
+    "three": "^0.89.0"
+  }
+}
