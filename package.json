@@ -16,6 +16,7 @@
     "shader-reload": "^1.2.2"
   },
   "dependencies": {
-    "three": "^0.89.0"
+    "three": "^0.89.0",
+    "three-orbit-viewer": "^69.3.1"
   }
 }
