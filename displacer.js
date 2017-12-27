@@ -1,4 +1,4 @@
-class WaveformData {
+class Displacer {
   constructor(cylinderGeo) {
     const vertCount = cylinderGeo.attributes.position.count;
     const { radialSegments, heightSegments } = cylinderGeo.parameters;
@@ -18,10 +18,6 @@ class WaveformData {
     this.middleVertices = middleVertices;
   }
   getDisplacements() { return this.displacements; }
-  update() {
-    // TODO update displacements according to FFT or whatever
-    // NOTE remember to take care of the caps
-  }
   displaceAllRings(val) {
     this.middleVertices.forEach((ring, heightIndex) => {
       // ring.forEach((vertexIndex, radialIndex) => {
@@ -37,4 +33,4 @@ class WaveformData {
   }
 }
 
-module.exports = WaveformData;
+module.exports = Displacer;

@@ -1,6 +1,7 @@
-const shader = require('./waveform.shader');
-const WaveformData = require('./waveformData');
 const THREE = require('three');
+const createAudioAnalyser = require('web-audio-analyser');
+const shader = require('./waveform.shader');
+const Displacer = require('./displacer');
 const createOrbitViewer = require('three-orbit-viewer')(THREE);
 
 const material = new THREE.ShaderMaterial({
@@ -20,13 +21,17 @@ shader.on('change', () => {
   material.needsUpdate = true;
 });
 
-const geometry = new THREE.CylinderBufferGeometry(1, 1, 1, 16, 65, true);
+const AUDIO_RESOLUTION = 64;
+const HEIGHT_SEGMENT = AUDIO_RESOLUTION + 1;
+const RADIAL_SEGMENT = 16;
+const HEIGHT = 10;
+const geometry = new THREE.CylinderBufferGeometry(0, 0, HEIGHT, RADIAL_SEGMENT, HEIGHT_SEGMENT, true);
 
 // store and pass wave displacement in an array
-const waveformData = new WaveformData(geometry);
-geometry.addAttribute('displacement', new THREE.BufferAttribute(waveformData.getDisplacements(), 1));
+const displacer = new Displacer(geometry);
+geometry.addAttribute('displacement', new THREE.BufferAttribute(displacer.getDisplacements(), 1));
 
-window.waveformData = waveformData;
+window.displacer = displacer;
 
 const mesh = new THREE.Mesh(geometry, material);
 
@@ -39,17 +44,35 @@ const orbitViewer = createOrbitViewer({
 
 orbitViewer.scene.add(mesh);
 
+
+let analyser;
+let audioAvailable = false;
+let wf = new Uint8Array(AUDIO_RESOLUTION);
+navigator.mediaDevices.getUserMedia({ audio: true })
+  .then((stream) => {
+    analyser = createAudioAnalyser(stream, { audible: false });
+    analyser.analyser.fftSize = AUDIO_RESOLUTION * 2;
+    audioAvailable = true;
+  })
+  .catch((err) => {
+  /* handle the error */
+    console.error('couldnt access mic');
+    console.error(err);
+  });
+
+function updateWaveform() {
+  if (!audioAvailable) return;
+  wf = analyser.waveform(wf);
+  for (let i = 0; i < wf.length; i += 1) {
+    displacer.displaceRing(i, wf[i]);
+  }
+}
+
 let time = 0;
 function tick(dt) {
   time += dt;
   mesh.material.uniforms.time.value = time / 1000;
-  waveformData.update();
+  updateWaveform();
   geometry.attributes.displacement.needsUpdate = true;
 }
 orbitViewer.on('tick', tick);
-
-
-for (let index = 0; index < 64; index += 1) {
-  const displacement = (2 - Math.cos(index * (1 / 64) * Math.PI * 2) - 1) * 0.1;
-  waveformData.displaceRing(index, displacement);
-}
