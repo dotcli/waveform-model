@@ -20,9 +20,6 @@ class Displacer {
   getDisplacements() { return this.displacements; }
   displaceAllRings(val) {
     this.middleVertices.forEach((ring, heightIndex) => {
-      // ring.forEach((vertexIndex, radialIndex) => {
-      //   this.displacements[vertexIndex] = val;
-      // });
       this.displaceRing(heightIndex, val);
     });
   }

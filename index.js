@@ -1,31 +1,18 @@
 const THREE = require('three');
-const shader = require('./modules/waveform.shader');
+const MeshCustomMaterial = require('./modules/meshCustomMaterial');
 const Displacer = require('./modules/displacer');
 const Recorder = require('./modules/recorder');
 const createOrbitViewer = require('three-orbit-viewer')(THREE);
 
-const material = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 1.0 },
-    color: { value: new THREE.Vector3(1, 0, 0) },
-  },
-
-  vertexShader: shader.vertex,
-  fragmentShader: shader.fragment,
-});
-
-shader.on('change', () => {
-  // Mark shader for recompilation
-  material.vertexShader = shader.vertex;
-  material.fragmentShader = shader.fragment;
-  material.needsUpdate = true;
-});
+const material = new MeshCustomMaterial();
+material.metalness = 0.8;
+material.flatShading = true;
 
 const RECORDING_DURATION = 5;
-const SEGMENT_RESOLUTION = 256;
+const SEGMENT_RESOLUTION = 128;
 const HEIGHT_SEGMENT = SEGMENT_RESOLUTION + 1;
 const RADIAL_SEGMENT = 16;
-const HEIGHT = 10;
+const HEIGHT = 5;
 const geometry = new THREE.CylinderBufferGeometry(0, 0, HEIGHT, RADIAL_SEGMENT, HEIGHT_SEGMENT, true);
 
 // store and pass wave displacement in an array
@@ -45,6 +32,17 @@ const orbitViewer = createOrbitViewer({
 
 orbitViewer.scene.add(mesh);
 
+// lighting
+const pointLight = new THREE.PointLight(0xffdd99, 1);
+pointLight.position.set(0, 1, 1);
+orbitViewer.scene.add(pointLight);
+const lightHelper = new THREE.PointLightHelper(pointLight, 0.2);
+orbitViewer.scene.add(lightHelper);
+const ambientLight = new THREE.AmbientLight(0x404040, 1); // soft white light
+orbitViewer.scene.add(ambientLight);
+const hemiLight = new THREE.HemisphereLight(0x5555ff, 0x200808, 5);
+hemiLight.position.set(0, 50, 0);
+orbitViewer.scene.add(hemiLight);
 
 let audioAvailable = false;
 navigator.mediaDevices.getUserMedia({ audio: true })
@@ -108,6 +106,9 @@ let time = 0;
 function tick(dt) {
   time += dt;
   mesh.material.uniforms.time.value = time / 1000;
+  mesh.rotation.z = Math.sin(time / 1372);
+  // rotate light around to see
+  pointLight.position.set(2 * Math.sin(time / 2000), 3 * Math.cos(time / 1000), 2 * Math.sin(time / 500));
 }
 orbitViewer.on('tick', tick);
 
