@@ -1,7 +1,7 @@
 const THREE = require('three');
 const createAudioAnalyser = require('web-audio-analyser');
-const shader = require('./waveform.shader');
-const Displacer = require('./displacer');
+const shader = require('./modules/waveform.shader');
+const Displacer = require('./modules/displacer');
 const createOrbitViewer = require('three-orbit-viewer')(THREE);
 
 const material = new THREE.ShaderMaterial({
