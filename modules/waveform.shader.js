@@ -27,7 +27,8 @@ module.exports = require('shader-reload')({
   void main () {
     vec3 pos = position.xyz;
     // pos += normal * 0.5 * (sin(time * 1.0) * 0.5 + 0.5);
-    pos += normal * (displacement / 128.0);
+    // pos += normal * (displacement / 128.0);
+    pos += normal * displacement;
     vNormal = normal;
     vDisplacement = displacement;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos.xyz, 1.0);

@@ -1,7 +1,7 @@
 const THREE = require('three');
-const createAudioAnalyser = require('web-audio-analyser');
 const shader = require('./modules/waveform.shader');
 const Displacer = require('./modules/displacer');
+const Recorder = require('./modules/recorder');
 const createOrbitViewer = require('three-orbit-viewer')(THREE);
 
 const material = new THREE.ShaderMaterial({
@@ -21,8 +21,9 @@ shader.on('change', () => {
   material.needsUpdate = true;
 });
 
-const AUDIO_RESOLUTION = 64;
-const HEIGHT_SEGMENT = AUDIO_RESOLUTION + 1;
+const RECORDING_DURATION = 5;
+const SEGMENT_RESOLUTION = 256;
+const HEIGHT_SEGMENT = SEGMENT_RESOLUTION + 1;
 const RADIAL_SEGMENT = 16;
 const HEIGHT = 10;
 const geometry = new THREE.CylinderBufferGeometry(0, 0, HEIGHT, RADIAL_SEGMENT, HEIGHT_SEGMENT, true);
@@ -45,13 +46,9 @@ const orbitViewer = createOrbitViewer({
 orbitViewer.scene.add(mesh);
 
 
-let analyser;
 let audioAvailable = false;
-let wf = new Uint8Array(AUDIO_RESOLUTION);
 navigator.mediaDevices.getUserMedia({ audio: true })
-  .then((stream) => {
-    analyser = createAudioAnalyser(stream, { audible: false });
-    analyser.analyser.fftSize = AUDIO_RESOLUTION * 2;
+  .then(() => {
     audioAvailable = true;
   })
   .catch((err) => {
@@ -60,19 +57,57 @@ navigator.mediaDevices.getUserMedia({ audio: true })
     console.error(err);
   });
 
-function updateWaveform() {
-  if (!audioAvailable) return;
-  wf = analyser.waveform(wf);
-  for (let i = 0; i < wf.length; i += 1) {
-    displacer.displaceRing(i, wf[i]);
+/**
+ * sample the shape of audio
+ * @param {AudioBuffer} buf
+ */
+function sampleAudioBuffer(buf) {
+  const bufferData = buf.getChannelData(0);
+  const chunkSize = bufferData.length / SEGMENT_RESOLUTION;
+  const audioSamples = [];
+  let prevSample = 0;
+  for (let index = 0; index < SEGMENT_RESOLUTION; index += 1) {
+    let sample = Math.abs(bufferData[Math.floor(index * chunkSize)]);
+    // scale samples
+    sample **= 0.5;
+    // ease the samples
+    sample = Math.max(prevSample * 0.2, sample);
+    audioSamples.push(sample);
+    prevSample = sample;
   }
+  return audioSamples;
 }
+
+function updateWaveform(shapeData) {
+  if (!audioAvailable) return;
+  for (let i = 0; i < shapeData.length; i += 1) {
+    displacer.displaceRing(i, shapeData[i]);
+  }
+  geometry.attributes.displacement.needsUpdate = true;
+}
+
+function onRecordEnd(rec) {
+  const buffer = rec.exportBuffer();
+  const shapeData = sampleAudioBuffer(buffer);
+  updateWaveform(shapeData);
+}
+const recorder = new Recorder(RECORDING_DURATION, onRecordEnd);
+
+const btnRecord = document.createElement('button');
+btnRecord.innerText = 'record';
+btnRecord.style.fontSize = '5em';
+btnRecord.style.zIndex = 3;
+btnRecord.style.position = 'absolute';
+btnRecord.style.left = 0;
+btnRecord.addEventListener('click', () => {
+  recorder.start();
+});
+document.body.appendChild(btnRecord);
 
 let time = 0;
 function tick(dt) {
   time += dt;
   mesh.material.uniforms.time.value = time / 1000;
-  updateWaveform();
-  geometry.attributes.displacement.needsUpdate = true;
 }
 orbitViewer.on('tick', tick);
+
